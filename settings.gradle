@@ -1,0 +1,12 @@
+rootProject.name = 'cluster-practice'
+include 'gate'
+include 'worker'
+include 'cluster-support'
+include 'sharding-support'
+include 'nginx'
+include 'worker-functional-test'
+include 'gate-functional-tests'
+include 'test-utils'
+include 'nginx-functional-tests'
+include 'integration-tests'
+

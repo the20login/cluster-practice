@@ -1,0 +1,4 @@
+ext {
+    lombokVersion = "1.18.8"
+    testcontainersVersion = "1.11.3"
+}

@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    //id 'com.google.protobuf' version '0.8.8'
+    id 'application'
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+mainClassName = "com.github.the20login.cluster.worker.Main"
+
+dependencies {
+
+    implementation project(":sharding-support")
+    implementation platform('org.springframework.boot:spring-boot-dependencies:2.1.5.RELEASE')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    runtime 'ch.qos.logback:logback-classic:1.2.3'
+    runtime 'ch.qos.logback:logback-core:1.2.3'
+    implementation 'io.etcd:jetcd-core:0.3.0'
+    implementation 'args4j:args4j:2.33'
+    implementation 'org.pcollections:pcollections:2.1.3'
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.8'
+    
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+
+    testCompile "org.junit.jupiter:junit-jupiter:5.4.2"
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+}
+
+task buildImage(type: Exec) {
+    group 'docker'
+    workingDir rootDir
+    environment('DOCKER_BUILDKIT', '1')//enable experimental
+    commandLine "docker", "build", ".", "-f", file("$projectDir/Dockerfile"),  "-t", "worker"
+}

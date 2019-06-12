@@ -1,0 +1,46 @@
+buildscript {
+    apply from: "versions.gradle"
+}
+
+plugins {
+//    id 'com.palantir.git-version' version '0.11.0'
+}
+
+group 'com.github.the20login'
+version '0.0.1'
+
+subprojects {
+    group = parent.group
+    version = parent.version
+
+    repositories {
+        mavenCentral()
+    }
+
+
+    tasks.withType(AbstractArchiveTask) {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+}
+
+task resolveDependencies {
+    setDescription "Resolves all projects dependencies from the repository."
+    setGroup "Build Server"
+
+    doLast {
+        rootProject.allprojects { project ->
+            project.buildscript.configurations.forEach { configuration ->
+                if (configuration.canBeResolved) {
+                    configuration.resolve()
+                }
+            }
+
+            project.configurations.forEach { configuration ->
+                if (configuration.canBeResolved) {
+                    configuration.resolve()
+                }
+            }
+        }
+    }
+}

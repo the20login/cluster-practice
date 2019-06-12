@@ -1,0 +1,27 @@
+version: "3"
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.3.12
+    entrypoint: etcd --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd:2379
+
+  nginx:
+    image: cluster-nginx
+    ports:
+      - 80
+      - 8080
+
+  gate:
+    image: gate
+    environment:
+      advertised_address: gate:8080
+      etcd_servers: etcd:2379
+    ports:
+      - 8080
+
+  worker:
+    image: worker
+    environment:
+      advertised_address: worker:8080
+      etcd_servers: etcd:2379
+    ports:
+      - 8080

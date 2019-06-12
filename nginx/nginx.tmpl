@@ -1,0 +1,38 @@
+{{ if ls "/services/GATE" }}
+upstream backend {
+{{ range getvs "/services/GATE/*" }}
+    server {{ . }};{{ end }}
+}
+{{ end }}
+
+server {
+  listen 80;
+
+  access_log /dev/stdout;
+  error_log /dev/stderr;
+
+    location / {
+{{ if ls "/services/GATE" }}
+        proxy_pass http://backend/;
+{{ else }}
+        return 503 'No gates available';
+        add_header Content-Type text/plain;
+{{ end }}
+    }
+}
+
+server {
+  listen 8080;
+
+  access_log /dev/stdout;
+  error_log /dev/stderr;
+
+  location /status {
+  {{ if ls "/services/GATE" }}
+      return 200 'UP';
+  {{ else }}
+      return 200 'DOWN';
+  {{ end }}
+      add_header Content-Type text/plain;
+  }
+}

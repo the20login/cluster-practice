@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e pipefail
+
+# Try to make initial configuration every 5 seconds until successful
+until confd -onetime -backend etcdv3 -node http://$ETCD_HOSTNAME:$ETCD_PORT -config-file /etc/confd/conf.d/nginx.toml; do
+    echo "waiting for confd to create initial nginx configuration."
+    sleep 5
+done
+
+# Put a continual `confd` process into the background to watch for changes
+echo "confd is now monitoring etcd for changes..."
+exec confd -watch -backend etcdv3 -node http://$ETCD_HOSTNAME:$ETCD_PORT -config-file /etc/confd/conf.d/nginx.toml
+

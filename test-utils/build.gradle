@@ -1,0 +1,17 @@
+plugins {
+    id 'java'
+}
+
+group 'com.github.the20login'
+version '0.0.1'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile group: 'junit', name: 'junit', version: '4.12'
+    compile "org.apache.httpcomponents:httpclient:4.5.6"
+}

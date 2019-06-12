@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e pipefail
+
+echo "booting container. ETCD: '$ETCD_HOSTNAME:$ETCD_PORT'"
+
+# confd failed in case of name resolution error, so use this workaround
+/usr/local/bin/confd-watch &
+
+# Start the Nginx service using the generated config
+echo "starting nginx service..."
+exec nginx -g "daemon off;"

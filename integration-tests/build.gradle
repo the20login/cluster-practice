@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+}
+
+group 'com.github.the20login'
+version '0.0.1'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile project(":test-utils")
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile "org.testcontainers:testcontainers:$testcontainersVersion"
+    testCompile "com.github.tomakehurst:wiremock-jre8:2.23.2"
+    testCompile 'io.etcd:jetcd-core:0.3.0'
+    testCompile "com.fasterxml.jackson.core:jackson-databind:2.9.8"
+    testCompile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.9.8"
+
+    testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+    testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
+
+    testCompile 'org.slf4j:slf4j-api:1.7.26'
+    testRuntime 'ch.qos.logback:logback-core:1.2.3'
+    testRuntime 'ch.qos.logback:logback-classic:1.2.3'
+}
