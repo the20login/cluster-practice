@@ -13,26 +13,31 @@ dependencies {
     compile project(":cluster-support")
     compile project(":sharding-support")
     implementation platform('org.springframework.boot:spring-boot-dependencies:2.1.5.RELEASE')
+    implementation 'org.springframework.boot:spring-boot-starter-web'
 
-//    compile 'org.springframework:spring-context:5.1.6.RELEASE'
-//    compile 'javax.annotation:javax.annotation-api:1.3.2'
-//    implementation 'javax.validation:validation-api:2.0.1.Final'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    compile 'org.springframework.boot:spring-boot-starter-webflux'
+    compile 'org.projectreactor:reactor-spring:1.0.1.RELEASE'
+
     runtime 'ch.qos.logback:logback-core:1.2.3'
     runtime 'ch.qos.logback:logback-classic:1.2.3'
     compile 'io.etcd:jetcd-core:0.3.0'
     compile 'org.pcollections:pcollections:2.1.3'
-    compileOnly 'org.projectlombok:lombok:1.18.6'
-    annotationProcessor 'org.projectlombok:lombok:1.18.6'
     implementation 'io.reactivex.rxjava2:rxjava:2.2.8'
 
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile "org.testcontainers:testcontainers:$testcontainersVersion"
+    compileOnly 'org.projectlombok:lombok:1.18.6'
+    annotationProcessor 'org.projectlombok:lombok:1.18.6'
+
+    testCompile "org.junit.jupiter:junit-jupiter:$junitVersion"
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile "org.hamcrest:hamcrest-core:2.1"
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.6'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.6'
 }
 
 task buildImage(type: Exec) {
     group 'docker'
     workingDir rootDir
     environment('DOCKER_BUILDKIT', '1')//enable experimental
-    commandLine "docker", "build", ".", "-f", file("$projectDir/Dockerfile"),  "-t", "gate"
+    commandLine "docker", "build", ".", "-f", file("$projectDir/Dockerfile"), "--build-arg", "REVISION_ARG=$revision", "-t", "$project.name:$revision", "-t", "$project.name:$version"
 }

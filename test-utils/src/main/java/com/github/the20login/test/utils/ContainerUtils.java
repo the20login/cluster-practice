@@ -1,19 +1,25 @@
 package com.github.the20login.test.utils;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
+import io.restassured.RestAssured;
+import io.restassured.config.HttpClientConfig;
+import io.restassured.config.RestAssuredConfig;
+import io.restassured.response.ExtractableResponse;
+import io.restassured.response.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
-import static org.junit.Assert.fail;
+import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ContainerUtils {
-    private static final HttpClient HTTP_CLIENT = HttpClientBuilder.create().build();
+    private static final Logger log = LoggerFactory.getLogger(ContainerUtils.class);
     private static int CHECK_INTERVAL_MS = 1000;
     private static int TIMEOUT_MS = 10_000;
+
+    private static RestAssuredConfig CONFIG = RestAssured.config()
+            .httpClient(HttpClientConfig.httpClientConfig()
+                    .setParam("http.connection.timeout", 1000)
+                    .setParam("http.socket.timeout", 1000));
 
     public static void awaitStatus(int port, Status expectedStatus) throws InterruptedException {
         Status lastStatus = Status.UNKNOWN;
@@ -29,14 +35,18 @@ public class ContainerUtils {
 
     public static Status getStatus(int port) {
         try {
-            HttpResponse response = HTTP_CLIENT
-                    .execute(new HttpGet("http://127.0.0.1:" + port + "/status"));
-            if (response.getStatusLine().getStatusCode() != 200) {
+            ExtractableResponse<Response> response = given()
+                    .config(CONFIG)
+                    .header("Accept", "text/plain")
+                    .when().get("http://127.0.0.1:" + port + "/status")
+                    .then().extract();
+            if (response.statusCode() != 200) {
                 return Status.UNKNOWN;
             }
-            String status = EntityUtils.toString(response.getEntity());
-            return Status.valueOf(status);
-        } catch (IOException e) {
+
+            return Status.valueOf(response.body().asString());
+        } catch (Exception e) {
+            log.debug("Unable to obtain status", e);
             return Status.UNKNOWN;
         }
     }

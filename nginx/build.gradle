@@ -2,4 +2,5 @@ task buildImage(type: Exec) {
     group 'docker'
     workingDir projectDir
     commandLine "docker", "build", ".", "-t", "cluster-nginx"
+    commandLine "docker", "build", ".", "-f", file("$projectDir/Dockerfile"), "-t", "cluster-nginx:$revision", "-t", "cluster-nginx:$version"
 }

@@ -16,7 +16,7 @@ server {
         proxy_pass http://backend/;
 {{ else }}
         return 503 'No gates available';
-        add_header Content-Type text/plain;
+        default_type text/plain;
 {{ end }}
     }
 }
@@ -33,6 +33,6 @@ server {
   {{ else }}
       return 200 'DOWN';
   {{ end }}
-      add_header Content-Type text/plain;
+      default_type text/plain;
   }
 }

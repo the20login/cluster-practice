@@ -5,17 +5,16 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.github.the20login.test.utils.GitUtils;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.etcd.jetcd.ByteSequence;
 import io.etcd.jetcd.Client;
+import io.restassured.internal.mapping.Jackson2Mapper;
 import lombok.RequiredArgsConstructor;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-import org.junit.*;
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.*;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
@@ -24,32 +23,33 @@ import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import static com.github.the20login.test.utils.FutureUtils.assertFuture;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.assertEquals;
+import static io.restassured.RestAssured.given;
 
-public class ApiTest {
+public class GateTest {
     private static final ByteSequence WORKER_KEY = ByteSequence.from("/services/WORKER/" + UUID.randomUUID(), StandardCharsets.UTF_8);
     private static Slf4jLogConsumer WIREMOCK_LOG_CONSUMER = new Slf4jLogConsumer(LoggerFactory.getLogger("wiremockContainer"));
     private static Slf4jLogConsumer GATE_LOG_CONSUMER = new Slf4jLogConsumer(LoggerFactory.getLogger("gateContainer"));
     private static Slf4jLogConsumer ETCD_LOG_CONSUMER = new Slf4jLogConsumer(LoggerFactory.getLogger("etcdContainer"));
 
-    @ClassRule
-    public static Network NETWORK = Network.newNetwork();
+    private static final String REVISION = GitUtils.getRevision();
+    private static final String GATE_CONTAINER_TAG = Optional.ofNullable(System.getProperty("gateTag")).orElse(REVISION);
 
-    @ClassRule
-    public static GenericContainer wiremockContainer = new GenericContainer<>("rodolpheche/wiremock:2.23.2-alpine")
+    private static Network NETWORK = Network.newNetwork();
+
+    private static GenericContainer WIREMOCK_CONTAINER = new GenericContainer<>("rodolpheche/wiremock:2.23.2-alpine")
             .withExposedPorts(8080)
             .withLogConsumer(WIREMOCK_LOG_CONSUMER)
             .withNetwork(NETWORK)
             .withNetworkAliases("wiremock")
             .waitingFor(Wait.forListeningPort());
 
-    @ClassRule
-    public static GenericContainer etcdContainer = new GenericContainer("quay.io/coreos/etcd:v3.3.12")
+    private static GenericContainer ETCD_CONTAINER = new GenericContainer("quay.io/coreos/etcd:v3.3.12")
             .withCommand("etcd --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd:2379")
             .withExposedPorts(2379)
             .withLogConsumer(ETCD_LOG_CONSUMER)
@@ -57,8 +57,7 @@ public class ApiTest {
             .withNetworkAliases("etcd")
             .waitingFor(Wait.forListeningPort());
 
-    @Rule
-    public GenericContainer gateContainer = new GenericContainer<>("gate")
+    private static GenericContainer GATE_CONTAINER = new GenericContainer<>("gate:" + GATE_CONTAINER_TAG)
             .withEnv("advertised_address", "gate:8080")
             .withEnv("etcd_servers", "etcd:2379")
             .withExposedPorts(8080)
@@ -72,16 +71,29 @@ public class ApiTest {
     private Client etcdClient;
     private CloseableHttpClient httpClient;
 
+    @BeforeAll
+    static void prepareContainers() {
+        ETCD_CONTAINER.start();
+        WIREMOCK_CONTAINER.start();
+        GATE_CONTAINER.start();
+    }
 
-    @Before
-    public void init() {
-        wiremock = new WireMock("127.0.0.1", wiremockContainer.getMappedPort(8080));
-        etcdClient = Client.builder().endpoints("http://127.0.0.1:" + etcdContainer.getMappedPort(2379)).build();
+    @AfterAll
+    static void shutdownContainers() {
+        GATE_CONTAINER.stop();
+        ETCD_CONTAINER.stop();
+        WIREMOCK_CONTAINER.stop();
+    }
+
+    @BeforeEach
+    void init() {
+        wiremock = new WireMock("127.0.0.1", WIREMOCK_CONTAINER.getMappedPort(8080));
+        etcdClient = Client.builder().endpoints("http://127.0.0.1:" + ETCD_CONTAINER.getMappedPort(2379)).build();
         httpClient = HttpClientBuilder.create().build();
     }
 
-    @After
-    public void teardown() throws ExecutionException, InterruptedException, IOException {
+    @AfterEach
+    void teardown() throws ExecutionException, InterruptedException, IOException {
         if (etcdClient != null) {
             etcdClient.getKVClient().delete(WORKER_KEY).get();
             etcdClient.close();
@@ -91,9 +103,8 @@ public class ApiTest {
         }
     }
 
-    //TODO: use another http client
     @Test
-    public void queryTest() throws IOException, InterruptedException {
+    void queryTest() {
         ByteSequence workerMockAddress = ByteSequence.from("wiremock:8080", StandardCharsets.UTF_8);
         assertFuture(etcdClient.getKVClient().put(WORKER_KEY, workerMockAddress));
         wiremock.register(post(urlEqualTo("/first"))
@@ -103,14 +114,16 @@ public class ApiTest {
                 )
         );
 
-        HttpPost httpPost = new HttpPost("http://127.0.0.1:" + gateContainer.getMappedPort(8080) + "/first");
-        StringEntity entity = new StringEntity(MAPPER.writeValueAsString(new QueryPayload(null, 10)));
-        httpPost.setEntity(entity);
-        httpPost.setHeader("Accept", "text/plain");
-        httpPost.setHeader("Content-type", "application/json");
-        HttpResponse response = httpClient.execute(httpPost);
-        assertEquals(200, response.getStatusLine().getStatusCode());
-        UUID transactionId = UUID.fromString(EntityUtils.toString(response.getEntity()));
+        String response = given()
+                .header("Accept", "text/plain")
+                .header("Content-type", "application/json")
+                .body(new QueryPayload(null, 10), new Jackson2Mapper((cls, charset) -> MAPPER))
+                .when().post("http://127.0.0.1:" + GATE_CONTAINER.getMappedPort(8080) + "/first")
+                .then().assertThat()
+                .statusCode(200)
+                .extract().body().asString();
+
+        UUID transactionId = UUID.fromString(response);
 
         //TODO: validate body
         wiremock.verifyThat(postRequestedFor(urlEqualTo("/first"))
@@ -125,14 +138,13 @@ public class ApiTest {
                 )
         );
 
-        httpPost = new HttpPost("http://127.0.0.1:" + gateContainer.getMappedPort(8080) + "/second");
-        entity = new StringEntity(MAPPER.writeValueAsString(new QueryPayload(transactionId, 10)));
-        httpPost.setEntity(entity);
-        httpPost.setHeader("Accept", "text/plain");
-        httpPost.setHeader("Content-type", "application/json");
-        response = httpClient.execute(httpPost);
-        assertEquals(200, response.getStatusLine().getStatusCode());
-        assertEquals("123", EntityUtils.toString(response.getEntity()));
+        given()
+                .header("Accept", "text/plain")
+                .header("Content-type", "application/json")
+                .body(new QueryPayload(transactionId, 10), new Jackson2Mapper((cls, charset) -> MAPPER))
+                .when().post("http://127.0.0.1:" + GATE_CONTAINER.getMappedPort(8080) + "/second")
+                .then().assertThat()
+                .statusCode(200).body(CoreMatchers.equalTo("123"));
 
         //TODO: validate body
         wiremock.verifyThat(postRequestedFor(urlEqualTo("/second"))

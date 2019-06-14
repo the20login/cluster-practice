@@ -32,7 +32,7 @@ public class SumController {
     }
 
     @PostMapping(value = "/second", produces = MediaType.TEXT_PLAIN_VALUE)
-    public CompletableFuture<String> first(@Valid @RequestBody PayloadWithTxId request) throws JsonProcessingException {
+    public CompletableFuture<String> second(@Valid @RequestBody PayloadWithTxId request) throws JsonProcessingException {
         String message = objectMapper.writeValueAsString(request);
         return service.sendMessage("second", request.txId, message);
     }

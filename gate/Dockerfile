@@ -6,7 +6,8 @@ RUN ls -la /home/gradle/.gradle
 COPY --chown=gradle:gradle . /home/gradle/src
 #mount=type=cache doesn't support chown yet, so use root
 USER root
-RUN --mount=type=cache,target=/home/gradle/.gradle gradle --no-daemon :gate:installDist
+ARG REVISION_ARG
+RUN --mount=type=cache,target=/home/gradle/.gradle gradle --no-daemon :gate:installDist -Prevision=$REVISION_ARG
 
 FROM openjdk:8-jre-alpine
 EXPOSE 8080

@@ -4,8 +4,8 @@ import com.github.the20login.cluster.*;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.pcollections.HashTreePMap;
 import org.pcollections.PMap;
@@ -17,7 +17,8 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class ShardingRouterImplTest {
@@ -25,14 +26,14 @@ public class ShardingRouterImplTest {
     private ClusterIntegration cluster = Mockito.mock(ClusterIntegration.class);
     private PMap<NodeType, PMap<UUID, NodeInfo>> nodes = HashTreePMap.empty();
 
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         Mockito.reset(cluster);
         nodes = HashTreePMap.empty();
     }
 
     @Test
-    public void emptyCluster() {
+    void emptyCluster() {
         Subject<ClusterStateUpdate> subject = BehaviorSubject.create();
         Mockito.when(cluster.getSubject()).thenReturn(subject);
 
@@ -42,7 +43,7 @@ public class ShardingRouterImplTest {
     }
 
     @Test
-    public void addNewProcessingNode() {
+    void addNewProcessingNode() {
         Subject<ClusterStateUpdate> subject = BehaviorSubject.create();
         Mockito.when(cluster.getSubject()).thenReturn(subject);
 
@@ -138,15 +139,15 @@ public class ShardingRouterImplTest {
         subject.onNext(addNode(node2));
 
         //some node returned, we don't care which one
-        NodeInfo node = sharding.getNodeForTransaction(txId);
-        assertThat(node, anyOf(equalTo(node1), equalTo(node2)));
+        NodeInfo nodeToRemove = sharding.getNodeForTransaction(txId);
+        assertThat(nodeToRemove, anyOf(equalTo(node1), equalTo(node2)));
         //then remove this node
-        subject.onNext(removeNode(node));
+        subject.onNext(removeNode(nodeToRemove));
 
         //other node should be returned
-        NodeInfo survivor = node.equals(node1) ? node2 : node1;
+        NodeInfo survivor = nodeToRemove.equals(node1) ? node2 : node1;
         assertEquals(survivor, sharding.getNodeForTransaction(txId));
-        assertNotEquals(node, survivor);
+        assertNotEquals(nodeToRemove, survivor);
     }
 
     private ClusterStateUpdate addNode(NodeInfo node) {

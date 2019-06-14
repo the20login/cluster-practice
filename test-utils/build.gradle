@@ -12,6 +12,8 @@ repositories {
 }
 
 dependencies {
-    compile group: 'junit', name: 'junit', version: '4.12'
-    compile "org.apache.httpcomponents:httpclient:4.5.6"
+    compile 'io.rest-assured:rest-assured:4.0.0'
+    compile "org.junit.jupiter:junit-jupiter:$junitVersion"
+    compile "org.eclipse.jgit:org.eclipse.jgit:5.4.0.201906121030-r"
+    compile 'org.slf4j:slf4j-api:1.7.26'
 }

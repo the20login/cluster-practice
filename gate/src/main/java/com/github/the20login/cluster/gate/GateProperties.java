@@ -12,7 +12,7 @@ import java.util.Set;
 @Slf4j
 @Data
 @Validated
-public class GateConfiguration {
+public class GateProperties {
     @Value("${advertised.address}")
     @NotEmpty
     private String advertisedAddress;

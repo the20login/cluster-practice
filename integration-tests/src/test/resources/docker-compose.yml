@@ -5,13 +5,13 @@ services:
     entrypoint: etcd --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://etcd:2379
 
   nginx:
-    image: cluster-nginx
+    image: cluster-nginx:${nginxTag}
     ports:
       - 80
       - 8080
 
   gate:
-    image: gate
+    image: gate:${gateTag}
     environment:
       advertised_address: gate:8080
       etcd_servers: etcd:2379
@@ -19,7 +19,7 @@ services:
       - 8080
 
   worker:
-    image: worker
+    image: worker:${workerTag}
     environment:
       advertised_address: worker:8080
       etcd_servers: etcd:2379

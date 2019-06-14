@@ -24,13 +24,16 @@ dependencies {
     compileOnly "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor "org.projectlombok:lombok:$lombokVersion"
 
-    testCompile "org.junit.jupiter:junit-jupiter:5.4.2"
+    testCompile "org.junit.jupiter:junit-jupiter:$junitVersion"
     testCompile("org.springframework.boot:spring-boot-starter-test")
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.6'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.6'
 }
 
 task buildImage(type: Exec) {
     group 'docker'
     workingDir rootDir
     environment('DOCKER_BUILDKIT', '1')//enable experimental
-    commandLine "docker", "build", ".", "-f", file("$projectDir/Dockerfile"),  "-t", "worker"
+    commandLine "docker", "build", ".", "-f", file("$projectDir/Dockerfile"),  "--build-arg", "REVISION_ARG=$revision", "-t", "$project.name:$revision", "-t", "$project.name:$version"
 }

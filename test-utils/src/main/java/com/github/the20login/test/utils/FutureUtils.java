@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class FutureUtils {
     public static Duration DEFAULT_TIMEOUT = Duration.ofSeconds(3);

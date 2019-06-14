@@ -13,7 +13,6 @@ repositories {
 
 dependencies {
     testCompile project(":test-utils")
-    testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile "org.testcontainers:testcontainers:$testcontainersVersion"
     testCompile "com.github.tomakehurst:wiremock-jre8:2.23.2"
     testCompile "com.fasterxml.jackson.core:jackson-databind:2.9.8"
@@ -21,6 +20,9 @@ dependencies {
 
     testCompileOnly "org.projectlombok:lombok:$lombokVersion"
     testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
+
+    testCompile 'io.rest-assured:rest-assured:4.0.0'
+    testCompile "org.junit.jupiter:junit-jupiter:$junitVersion"
 
     testRuntime 'ch.qos.logback:logback-core:1.2.3'
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
